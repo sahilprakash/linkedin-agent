@@ -2,7 +2,10 @@ name: LinkedIn Daily Ideas
 
 on:
   schedule:
-    - cron: '30 1 * * *'   # 7:00 AM IST every day
+    # Primary run: 7:00 AM IST. The later runs are automatic catch-ups in
+    # case GitHub delays or misses a scheduled workflow; the guard below
+    # ensures only one file is generated for each IST date.
+    - cron: '30 1,4,7,10,13 * * *'
   workflow_dispatch:        # Allow manual trigger from GitHub UI
 
 jobs:
@@ -16,21 +19,38 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      - name: Check whether today's ideas already exist
+        id: today
+        env:
+          TZ: Asia/Kolkata
+        run: |
+          if [ -f "linkedin_ideas/$(date +%F).md" ]; then
+            echo "generate=false" >> "$GITHUB_OUTPUT"
+            echo "Ideas for $(date +%F) already exist; skipping generation."
+          else
+            echo "generate=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Python
+        if: steps.today.outputs.generate == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
+        if: steps.today.outputs.generate == 'true'
         run: pip install -r requirements.txt
 
       - name: Create .env from secrets
+        if: steps.today.outputs.generate == 'true'
         run: echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
 
       - name: Generate LinkedIn post ideas
+        if: steps.today.outputs.generate == 'true'
         run: python3 linkedin_agent.py
 
       - name: Commit daily ideas file
+        if: steps.today.outputs.generate == 'true'
         run: |
           git config user.name "LinkedIn Bot"
           git config user.email "linkedin-bot@sahil"

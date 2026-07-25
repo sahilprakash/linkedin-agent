@@ -8,7 +8,9 @@ Built for **Sahil Prakash** — BI & Analytics Engineer actively job hunting and
 
 ## What It Does
 
-Every day at **7:30 AM IST**, a GitHub Actions workflow:
+Every day from **7:00 AM IST**, a GitHub Actions workflow generates the ideas.
+Automatic catch-up checks later in the day cover delayed GitHub schedules, while
+an IST-date guard ensures it generates at most one ideas file per day.
 
 1. Calls the **Groq API** (`llama-3.3-70b-versatile`) with a structured prompt
 2. Generates **5 post ideas** — 3 on the primary theme, 2 on the secondary
@@ -108,7 +110,7 @@ linkedin-agent/
 
 - Python 3.10+
 - [Groq API key](https://console.groq.com) (free tier works)
-- GitHub repository with a self-hosted runner (for local IP-based runs)
+- GitHub repository with Actions enabled
 
 ### Local Run
 
@@ -131,7 +133,7 @@ Output will be written to `linkedin_ideas/YYYY-MM-DD.md`.
 
 ### Automated Daily Run (GitHub Actions)
 
-The workflow at `.github/workflows/linkedin-ideas.yml` runs on a self-hosted macOS runner (`sahil-mac-linkedin`).
+The workflow at `.github/workflows/linkedin-ideas.yml` runs on a GitHub-hosted runner, so it does not depend on this Mac being awake.
 
 **Required GitHub Secret:**
 
@@ -144,7 +146,8 @@ Add it via:
 gh secret set GH_PAT --repo sahilprakash/linkedin-agent
 ```
 
-The cron `0 2 * * *` fires at 02:00 UTC = 07:30 AM IST.
+The primary cron run is `30 1 * * *` (01:30 UTC = 07:00 AM IST), with later
+automatic catch-up runs if that attempt is delayed.
 
 ---
 
@@ -168,7 +171,7 @@ To adapt for a different person, update `PROFILE` and `THEMES`.
 
 - **Language:** Python 3
 - **AI:** Groq API — `llama-3.3-70b-versatile`
-- **Automation:** GitHub Actions (self-hosted runner on macOS)
+- **Automation:** GitHub Actions (GitHub-hosted runner)
 - **Persistence:** Markdown files committed to this repo
 
 ---
@@ -177,4 +180,4 @@ To adapt for a different person, update `PROFILE` and `THEMES`.
 
 - `GROQ_API_KEY` lives in `.env` only — never committed
 - `GH_PAT` is stored as a GitHub Secret — never in code
-- Runner is self-hosted on the author's Mac — no cloud IPs
+- Secrets are provided only to the GitHub Actions workflow at runtime
