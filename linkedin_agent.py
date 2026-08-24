@@ -23,7 +23,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
-GROQ_MODEL    = "llama-3.3-70b-versatile"
+# Groq retires model IDs; try in order until one is available.
+GROQ_MODELS   = [
+    os.getenv("GROQ_MODEL", "").strip(),
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.6-27b",
+    "openai/gpt-oss-120b",
+]
+GROQ_MODELS   = [m for m in GROQ_MODELS if m]
 OUTPUT_DIR    = "linkedin_ideas"
 
 IST           = timedelta(hours=5, minutes=30)
@@ -116,44 +123,57 @@ Return a JSON array of exactly 5 objects. No markdown fences, just raw JSON.
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json",
     }
-    payload = {
-        "model": GROQ_MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user",   "content": prompt},
-        ],
-        "temperature": 0.85,
-        "max_tokens": 3000,
-    }
+    last_error = None
+    for model in GROQ_MODELS:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": prompt},
+            ],
+            "temperature": 0.85,
+            "max_tokens": 3000,
+        }
 
-    for attempt in range(2):
-        try:
-            res = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers=headers, json=payload, timeout=30
-            )
-            if res.status_code == 429:
+        for attempt in range(2):
+            try:
+                res = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers=headers, json=payload, timeout=60
+                )
+                if res.status_code == 429:
+                    if attempt == 0:
+                        import time; time.sleep(20)
+                        continue
+                    last_error = RuntimeError("Groq rate limited after retry")
+                    break
+                if res.status_code in (400, 404):
+                    last_error = RuntimeError(f"Groq error {res.status_code} for {model}: {res.text[:200]}")
+                    break
+                if res.status_code != 200:
+                    last_error = RuntimeError(f"Groq error {res.status_code}: {res.text[:200]}")
+                    if attempt == 0:
+                        import time; time.sleep(5)
+                        continue
+                    break
+
+                content = res.json()["choices"][0]["message"]["content"].strip()
+                if content.startswith("```"):
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
+                ideas = json.loads(content)
+                print(f"Using Groq model: {model}")
+                return ideas
+
+            except (requests.exceptions.ConnectionError, json.JSONDecodeError) as e:
+                last_error = RuntimeError(f"Failed to generate ideas with {model}: {e}")
                 if attempt == 0:
-                    import time; time.sleep(20)
+                    import time; time.sleep(5)
                     continue
-                raise RuntimeError("Groq rate limited after retry")
-            if res.status_code != 200:
-                raise RuntimeError(f"Groq error {res.status_code}: {res.text[:200]}")
 
-            content = res.json()["choices"][0]["message"]["content"].strip()
-            # Strip markdown fences if model added them
-            if content.startswith("```"):
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-            return json.loads(content)
-
-        except (requests.exceptions.ConnectionError, json.JSONDecodeError) as e:
-            if attempt == 0:
-                import time; time.sleep(5)
-                continue
-            raise RuntimeError(f"Failed to generate ideas: {e}")
-
+    if last_error:
+        raise last_error
     return []
 
 

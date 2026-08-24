@@ -12,7 +12,7 @@ Every day from **7:00 AM IST**, a GitHub Actions workflow generates the ideas.
 Automatic catch-up checks later in the day cover delayed GitHub schedules, while
 an IST-date guard ensures it generates at most one ideas file per day.
 
-1. Calls the **Groq API** (`llama-3.3-70b-versatile`) with a structured prompt
+1. Calls the **Groq API** (current default `openai/gpt-oss-20b`, with fallbacks) with a structured prompt
 2. Generates **5 post ideas** — 3 on the primary theme, 2 on the secondary
 3. Saves the output as `linkedin_ideas/YYYY-MM-DD.md`
 4. Commits and pushes the file to this repo automatically
@@ -157,7 +157,7 @@ All configuration is at the top of `linkedin_agent.py`:
 
 | Variable | Default | Description |
 |---|---|---|
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model to use |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Optional override; script falls back if Groq retires an ID |
 | `OUTPUT_DIR` | `linkedin_ideas` | Directory for output files |
 | `THEMES` | 4 themes | List of theme objects with name + description |
 | `OPTIMAL_TIMES` | Per weekday | Best posting time map |
@@ -170,7 +170,7 @@ To adapt for a different person, update `PROFILE` and `THEMES`.
 ## Tech Stack
 
 - **Language:** Python 3
-- **AI:** Groq API — `llama-3.3-70b-versatile`
+- **AI:** Groq API — `openai/gpt-oss-20b` (with fallbacks)
 - **Automation:** GitHub Actions (GitHub-hosted runner)
 - **Persistence:** Markdown files committed to this repo
 
