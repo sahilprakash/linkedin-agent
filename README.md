@@ -140,11 +140,18 @@ The workflow at `.github/workflows/linkedin-ideas.yml` runs on a GitHub-hosted r
 | Secret | Value |
 |---|---|
 | `GH_PAT` | Personal Access Token with `repo` scope (for git push) |
+| `GMAIL_USERNAME` | Gmail address used to send the daily email |
+| `GMAIL_APP_PASSWORD` | Gmail App Password for SMTP (not your normal Gmail password) |
+| `EMAIL_TO` | Gmail address that should receive the ideas |
 
 Add it via:
 ```bash
 gh secret set GH_PAT --repo sahilprakash/linkedin-agent
 ```
+
+To enable the daily email, create a Gmail App Password for the sending account
+and add the three Gmail secrets above. The workflow sends the ideas inline as
+plain text after successfully pushing the daily file.
 
 The primary cron run is `30 1 * * *` (01:30 UTC = 07:00 AM IST), with later
 automatic catch-up runs if that attempt is delayed.
