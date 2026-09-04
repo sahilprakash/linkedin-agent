@@ -27,7 +27,6 @@ GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
 GROQ_MODELS   = [
     os.getenv("GROQ_MODEL", "").strip(),
     "openai/gpt-oss-20b",
-    "qwen/qwen3.6-27b",
     "openai/gpt-oss-120b",
 ]
 GROQ_MODELS   = [m for m in GROQ_MODELS if m]
@@ -102,6 +101,9 @@ secondary_theme = THEMES[(day_index + 1) % len(THEMES)]
 
 
 def generate_ideas() -> list[dict]:
+    if not GROQ_API_KEY:
+        raise RuntimeError("GROQ_API_KEY is not set")
+
     prompt = f"""
 Today is {WEEKDAY}, {TODAY_STR}.
 
@@ -157,7 +159,10 @@ Return a JSON array of exactly 5 objects. No markdown fences, just raw JSON.
                         continue
                     break
 
-                content = res.json()["choices"][0]["message"]["content"].strip()
+                try:
+                    content = res.json()["choices"][0]["message"]["content"].strip()
+                except (KeyError, IndexError, TypeError, ValueError) as e:
+                    raise RuntimeError(f"Unexpected Groq response for {model}: {e}") from e
                 if content.startswith("```"):
                     content = content.split("```")[1]
                     if content.startswith("json"):
