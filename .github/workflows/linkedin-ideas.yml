@@ -45,9 +45,16 @@ jobs:
         if: steps.today.outputs.generate == 'true'
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
         run: |
-          test -n "$GROQ_API_KEY" || { echo "GROQ_API_KEY secret is missing" >&2; exit 1; }
+          if [ -z "$GROQ_API_KEY" ] && [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "Neither GROQ_API_KEY nor OPENROUTER_API_KEY is configured" >&2
+            exit 1
+          fi
           printf 'GROQ_API_KEY=%s\n' "$GROQ_API_KEY" > .env
+          printf 'OPENROUTER_API_KEY=%s\n' "$OPENROUTER_API_KEY" >> .env
+          printf 'OPENROUTER_MODEL=%s\n' "${OPENROUTER_MODEL:-openrouter/auto}" >> .env
 
       - name: Generate LinkedIn post ideas
         if: steps.today.outputs.generate == 'true'

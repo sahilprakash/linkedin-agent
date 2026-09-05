@@ -23,6 +23,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/auto")
 # Groq retires model IDs; try in order until one is available.
 GROQ_MODELS   = [
     os.getenv("GROQ_MODEL", "").strip(),
@@ -30,6 +32,8 @@ GROQ_MODELS   = [
     "openai/gpt-oss-120b",
 ]
 GROQ_MODELS   = [m for m in GROQ_MODELS if m]
+if not GROQ_API_KEY:
+    GROQ_MODELS = []
 OUTPUT_DIR    = "linkedin_ideas"
 
 IST           = timedelta(hours=5, minutes=30)
@@ -187,8 +191,8 @@ def fallback_ideas() -> list[dict]:
 
 
 def generate_ideas() -> list[dict]:
-    if not GROQ_API_KEY:
-        raise RuntimeError("GROQ_API_KEY is not set")
+    if not GROQ_API_KEY and not OPENROUTER_API_KEY:
+        raise RuntimeError("Neither GROQ_API_KEY nor OPENROUTER_API_KEY is set")
 
     prompt = f"""
 Today is {WEEKDAY}, {TODAY_STR}.
@@ -262,6 +266,41 @@ Return a JSON array of exactly 5 objects. No markdown fences, just raw JSON.
                 if attempt == 0:
                     import time; time.sleep(5)
                     continue
+
+    # Provider fallback: OpenRouter exposes an OpenAI-compatible API and can
+    # route to an available model when Groq is unavailable or quota-limited.
+    if OPENROUTER_API_KEY:
+        try:
+            router_payload = {
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.85,
+                "max_tokens": 3000,
+            }
+            router_headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/sahilprakash/linkedin-agent",
+                "X-Title": "LinkedIn Daily Ideas Agent",
+            }
+            res = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=router_headers, json=router_payload, timeout=60,
+            )
+            res.raise_for_status()
+            content = res.json()["choices"][0]["message"]["content"].strip()
+            if content.startswith("```"):
+                content = content.split("```", 2)[1]
+                content = content.removeprefix("json").strip()
+            ideas = json.loads(content)
+            print(f"Using OpenRouter model: {OPENROUTER_MODEL}")
+            return ideas
+        except (requests.exceptions.RequestException, json.JSONDecodeError,
+                KeyError, IndexError, TypeError, ValueError) as exc:
+            last_error = RuntimeError(f"OpenRouter fallback failed: {exc}")
 
     if last_error:
         raise last_error

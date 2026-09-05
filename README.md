@@ -12,7 +12,7 @@ Every day from **7:00 AM IST**, a GitHub Actions workflow generates the ideas.
 Automatic catch-up checks later in the day cover delayed GitHub schedules, while
 an IST-date guard ensures it generates at most one ideas file per day.
 
-1. Calls the **Groq API** (current default `openai/gpt-oss-20b`, with fallbacks) with a structured prompt
+1. Calls the **Groq API** (current default `openai/gpt-oss-20b`, with fallbacks), then **OpenRouter** if Groq fails, with a structured prompt
 2. Generates **5 post ideas** — 3 on the primary theme, 2 on the secondary
 3. Saves the output as `linkedin_ideas/YYYY-MM-DD.md`
 4. Commits and pushes the file to this repo automatically
@@ -109,7 +109,7 @@ linkedin-agent/
 ### Prerequisites
 
 - Python 3.10+
-- [Groq API key](https://console.groq.com) (free tier works)
+- [Groq API key](https://console.groq.com) or [OpenRouter API key](https://openrouter.ai/keys)
 - GitHub repository with Actions enabled
 
 ### Local Run
@@ -124,6 +124,8 @@ pip install requests python-dotenv
 
 # Create .env file
 echo "GROQ_API_KEY=your_key_here" > .env
+# Optional second provider:
+# echo "OPENROUTER_API_KEY=your_key_here" >> .env
 
 # Run the agent
 python3 linkedin_agent.py
@@ -143,6 +145,11 @@ The workflow at `.github/workflows/linkedin-ideas.yml` runs on a GitHub-hosted r
 | `GMAIL_USERNAME` | Gmail address used to send the daily email |
 | `GMAIL_APP_PASSWORD` | Gmail App Password for SMTP (not your normal Gmail password) |
 | `EMAIL_TO` | Gmail address that should receive the ideas |
+| `OPENROUTER_API_KEY` | Optional fallback provider key |
+
+If Groq is unavailable, the agent automatically tries OpenRouter. Set the
+optional repository variable `OPENROUTER_MODEL` to choose a model; the default
+`openrouter/auto` lets OpenRouter select an available model.
 
 Add it via:
 ```bash
@@ -177,7 +184,7 @@ To adapt for a different person, update `PROFILE` and `THEMES`.
 ## Tech Stack
 
 - **Language:** Python 3
-- **AI:** Groq API — `openai/gpt-oss-20b` (with fallbacks)
+- **AI:** Groq API → OpenRouter → built-in templates
 - **Automation:** GitHub Actions (GitHub-hosted runner)
 - **Persistence:** Markdown files committed to this repo
 
