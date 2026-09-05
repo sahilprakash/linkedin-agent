@@ -100,6 +100,92 @@ primary_theme = THEMES[day_index % len(THEMES)]
 secondary_theme = THEMES[(day_index + 1) % len(THEMES)]
 
 
+def fallback_ideas() -> list[dict]:
+    """Return useful posts even when the external AI provider is unavailable."""
+    return [
+        {
+            "theme": primary_theme["name"],
+            "title": "Build a reliable Fabric data foundation",
+            "hook": "A beautiful dashboard cannot rescue unreliable data.",
+            "draft": (
+                "A beautiful dashboard cannot rescue unreliable data.\n\n"
+                "The strongest analytics teams start with a clear data foundation: "
+                "defined owners, consistent naming, documented transformations, and "
+                "a semantic model people can trust.\n\n"
+                "In Microsoft Fabric, small improvements to ingestion and modeling "
+                "often create more value than another layer of visual polish.\n\n"
+                "What is the first thing you improve when a reporting project becomes unreliable?\n\n"
+                "#MicrosoftFabric #AnalyticsEngineering #DataModeling"
+            ),
+            "why_it_works": "It connects a practical engineering lesson with a question that invites experience-based replies.",
+        },
+        {
+            "theme": primary_theme["name"],
+            "title": "Treat analytics models like products",
+            "hook": "Your semantic model is a product, not just a database layer.",
+            "draft": (
+                "Your semantic model is a product, not just a database layer.\n\n"
+                "It has users, quality expectations, release changes, and support needs. "
+                "When analysts understand the model, adoption improves. When definitions "
+                "change without communication, trust disappears.\n\n"
+                "A simple product mindset means documenting business definitions, testing "
+                "important measures, and giving users a clear way to report issues.\n\n"
+                "How does your team manage changes to shared metrics?\n\n"
+                "#AnalyticsEngineering #PowerBI #DataCulture"
+            ),
+            "why_it_works": "It reframes a familiar technical topic in a memorable, practical way.",
+        },
+        {
+            "theme": primary_theme["name"],
+            "title": "Choose measures over calculated columns",
+            "hook": "One DAX decision can make your model easier to maintain.",
+            "draft": (
+                "One DAX decision can make your model easier to maintain.\n\n"
+                "If a value depends on filter context, start by asking whether it belongs "
+                "as a measure instead of a calculated column. Measures keep logic flexible "
+                "and can reduce unnecessary model size.\n\n"
+                "The right choice still depends on the use case, but making the decision "
+                "explicit prevents many performance and maintenance problems later.\n\n"
+                "What DAX modeling rule has saved you the most rework?\n\n"
+                "#PowerBI #DAX #BusinessIntelligence"
+            ),
+            "why_it_works": "It offers a concise technical takeaway that Power BI practitioners can immediately apply.",
+        },
+        {
+            "theme": secondary_theme["name"],
+            "title": "Start small with Copilot automation",
+            "hook": "The best Copilot automation usually starts with one boring task.",
+            "draft": (
+                "The best Copilot automation usually starts with one boring task.\n\n"
+                "Instead of trying to automate an entire business process, find one step "
+                "that is repetitive, well understood, and easy to measure. Then add the "
+                "right approvals and exception handling.\n\n"
+                "Small wins create confidence—and reveal the real process gaps that need "
+                "attention before scaling.\n\n"
+                "Which repetitive task would you automate first?\n\n"
+                "#CopilotStudio #PowerPlatform #Automation"
+            ),
+            "why_it_works": "It makes AI adoption feel practical and lowers the barrier to starting.",
+        },
+        {
+            "theme": secondary_theme["name"],
+            "title": "Make automation observable and safe",
+            "hook": "Automation without monitoring is just invisible risk.",
+            "draft": (
+                "Automation without monitoring is just invisible risk.\n\n"
+                "Every production flow should make it easy to answer three questions: "
+                "Did it run? Did it complete? If not, what needs attention?\n\n"
+                "Add clear failure notifications, meaningful logs, and an owner who can "
+                "act on exceptions. Reliable automation is not only about saving clicks; "
+                "it is about making outcomes predictable.\n\n"
+                "What signal do you monitor most closely in your Power Platform flows?\n\n"
+                "#PowerAutomate #PowerPlatform #DigitalTransformation"
+            ),
+            "why_it_works": "It addresses a common operational blind spot with a clear checklist and discussion prompt.",
+        },
+    ]
+
+
 def generate_ideas() -> list[dict]:
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY is not set")
@@ -238,7 +324,11 @@ def main():
     print(f"Theme: {primary_theme['name']} (primary) + {secondary_theme['name']} (secondary)")
     print("Generating ideas via Groq...")
 
-    ideas = generate_ideas()
+    try:
+        ideas = generate_ideas()
+    except Exception as exc:
+        print(f"AI generation failed ({exc}); using built-in fallback ideas.")
+        ideas = fallback_ideas()
 
     if not ideas:
         print("ERROR: No ideas generated.")
