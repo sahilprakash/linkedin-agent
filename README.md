@@ -2,7 +2,7 @@
 
 An AI-powered agent that generates 5 tailored LinkedIn post ideas every morning, auto-committed to this repo and ready to copy-paste.
 
-Built for **Sahil Prakash** — BI & Analytics Engineer actively job hunting and building a personal brand in the Power BI / Microsoft Fabric / Copilot Studio space.
+Built By  **Sahil Prakash** — BI & Analytics Engineer actively job hunting and building a personal brand in the Power BI / Microsoft Fabric / Copilot Studio space.
 
 ---
 
